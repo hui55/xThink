@@ -28,15 +28,15 @@
 
 **系统结构划分**
 
-| 模块名            | 模块介绍      | 使用端口 | 必须https | 请求路径           | 启动顺序 |
-| -------------- | --------- | ---- | ------- | -------------- | ---- |
-| sso-server     | cas服务     | 8443 | √       | cas            | 2    |
-| sso-config     | 配置中心      | 8889 | ×       | config         | 1    |
-| sso-management | service管理 | 8081 | √       | cas-management | 3    |
-| sso-monitor    | 监控服务      | 8444 | ×       | /              | 5    |
-| sso-frontend   | 前端项目      | 3000 | ×       | /              | 单独启动 |
-| sso-support    | 基础模块      | -    | -       | -              | -    |
-| sso-rest-api   | 接口服务      | 8881 | ×       | api            | 4    |
+| 模块名            | 模块介绍      | 使用端口 | 必须https | 请求路径           | 启动顺序    |
+| -------------- | --------- | ---- | ------- | -------------- | ------- |
+| sso-server     | cas服务     | 8443 | √       | cas            | 2       |
+| sso-config     | 配置中心      | 8889 | ×       | config         | 1       |
+| sso-management | service管理 | 8081 | √       | cas-management | 3       |
+| sso-monitor    | 监控服务      | 8444 | ×       | /              | 5       |
+| sso-frontend   | 前端项目      | -    | -       | -              | 渲染定制主题页 |
+| sso-support    | 基础模块      | -    | -       | -              | -       |
+| sso-rest-api   | 接口服务      | 8881 | ×       | api            | 4       |
 
 **1. CAS简介**
 
@@ -59,21 +59,36 @@ CAS系统由两部分组件构成，分别是CAS Clients和CAS Server。Clients�
 
 **1.3 讨论问题**
 
-* SSO存在的意义—用户只需要登录一次就可以访问相互信任的应用系统
+* SSO存在的意义—用户只需要登录一次就可以访问相互信任的应用系统。
+* cas-server多负载情况实现session持久化。
 * Ticket票据统一存储问题，各节点访问的一致性。—Tomcat Session集群同步。
 * 移动端REST API认证。
+* A系统登录，B系统通过CAS协议能完成鉴权。B系统登出，A系统也自动登出。
+* 登录校验码策略—同一个IP十分钟内输入密码错误3次显示验证码。
 
 ## 3. 技术架构
 
 CAS系统实现鉴权功能，鉴权成功后将用户信息写入到REDIS中，通过Spring Session+REDIS实现分布式共享会话机制。
 
+![架构图](http://p2y607sfp.bkt.clouddn.com/1517036989900.jpg)
 
+为了保证认证中心的高可用、高并发，生产系统需要对CAS做集群部署。在多实例运行下，运行环境是分布式的，需要考虑状态一致性问题。
+
+鉴于CAS实现方式，状态相关点有两个，一是CAS登录登出流程，采用webflow实现，流程**状态**存储于session中。二是票据存储，缺省是在JVM内存中。
+
+* 待讨论的解决方案
+  * Tomcat集群复制 — 高并发状态下Session复制效率不高（不推荐）
+  * Session Sticky技术 + Redis存储票据
+
+![票据存储](http://p2y607sfp.bkt.clouddn.com/1517040513738.jpg)
 
 **3.1 认证主题页渲染**
 
+* 千米PC系统登录页—1000.com
+* 千米H5登录页—1000.com
+* 微信静默授权登录页（微信客户端内置浏览器）
 
-
-**3.2 客户端接入规则**
+**3.2 CAS Client集成**
 
 
 
